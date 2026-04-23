@@ -11,6 +11,6 @@ import { UserMapper } from 'src/commons/user.mapper';
   ],
   controllers: [UsersController],
   providers: [UsersService, UserMapper],
-  exports: [UsersService],
+  exports: [UsersService, UserMapper],
 })
 export class UsersModule {}

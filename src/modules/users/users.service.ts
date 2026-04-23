@@ -30,8 +30,17 @@ export class UsersService {
     return this.userMapper.toResponseDto(savedUser);
   }
 
+  async findAll(): Promise<UserResponseDto[]>{
+    const users =  await this.userRepository.find();
+    return this.userMapper.toResponseDtoList(users);
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
   private async validateEmailUniqueness(email: string): Promise<void>{
-    const user = await this.userRepository.findOne({where: {email}});
+    const user = await this.findByEmail(email);
     if(user) throw new ConflictException('Email is already registered');
   }
 

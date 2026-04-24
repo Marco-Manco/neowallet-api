@@ -23,8 +23,8 @@ export class User {
     createdAt: Date;
 
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt?: Date;
 
     @DeleteDateColumn({name: 'deleted_at'})
-    deletedAt: Date;
+    deletedAt?: Date;
 }

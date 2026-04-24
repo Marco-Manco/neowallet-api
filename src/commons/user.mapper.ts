@@ -10,6 +10,7 @@ export class UserMapper{
         dto.email = user.email;
         dto.role = user.role;
         dto.createdAt = user.createdAt;
+        dto.updatedAt = user.updatedAt;
         return dto;
     }
 

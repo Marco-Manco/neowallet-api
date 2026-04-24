@@ -1,0 +1,1 @@
+CREATE DATABASE neowallet_test_db;

@@ -11,6 +11,7 @@ import { SeedModule } from './modules/seed/seed.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
     DatabaseModule,
     UsersModule,

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -35,6 +35,16 @@ export class UsersService {
     return this.userMapper.toResponseDtoList(users);
   }
 
+  async findById(id: string): Promise<UserResponseDto>{
+    const user = await this.findUserOrThrow(id);
+    return this.userMapper.toResponseDto(user);
+  }
+
+  async softDelete(id: string): Promise<void>{
+    await this.findUserOrThrow(id);
+    await this.userRepository.softDelete(id);
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
@@ -42,6 +52,12 @@ export class UsersService {
   private async validateEmailUniqueness(email: string): Promise<void>{
     const user = await this.findByEmail(email);
     if(user) throw new ConflictException('Email is already registered');
+  }
+
+  private async findUserOrThrow(id: string): Promise<User>{
+    const user = await this.userRepository.findOne({where: {id}});
+      if(!user) throw new NotFoundException('User not found');
+      return user;
   }
 
   private hashPassword(password: string): Promise<string>{

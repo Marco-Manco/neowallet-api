@@ -25,6 +25,6 @@ export class User {
     @UpdateDateColumn()
     updatedAt: Date;
 
-    @DeleteDateColumn()
+    @DeleteDateColumn({name: 'deleted_at'})
     deletedAt: Date;
 }

@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './modules/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './modules/seed/seed.module';
+import { CurrenciesModule } from './modules/currencies/currencies.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { SeedModule } from './modules/seed/seed.module';
     UsersModule,
     AuthModule,
     SeedModule,
+    CurrenciesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserMapper } from 'src/commons/user.mapper';
+import { UserMapper } from 'src/modules/users/mappers/user.mapper';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 

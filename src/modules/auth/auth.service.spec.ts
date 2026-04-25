@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserMapper } from 'src/commons/user.mapper';
+import { UserMapper } from 'src/modules/users/mappers/user.mapper';
 import { mockUser, mockUserResponse } from '../users/test/user.fixture';
 import { MockUsersServiceFactory } from 'src/testing/mocks/services.mock';
 import { MockJwtServiceFactory, MockUserMapperFactory } from 'src/testing/mocks/common.mock';

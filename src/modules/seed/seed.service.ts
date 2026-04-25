@@ -5,6 +5,8 @@ import { User } from "../users/entities/user.entity";
 import { ConfigService } from "@nestjs/config";
 import * as bcrypt from 'bcrypt';
 import { UserRole } from "../users/enums/user-role.enum";
+import { Currency } from "../currencies/entities/currency.entity";
+import { CurrencyType } from "../currencies/enums/currency-type.enum";
 
 export class SeedService implements OnModuleInit{
     private readonly logger = new Logger(SeedService.name);
@@ -12,13 +14,17 @@ export class SeedService implements OnModuleInit{
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        private readonly configService: ConfigService,         
+        @InjectRepository(Currency)
+        private readonly currencyRepository: Repository<Currency>,     
+        private readonly configService: ConfigService,    
+        
 
     ){}
 
     async onModuleInit() {
         this.logger.log('Initialazing seeding process');
         await this.seedAdmin();
+        await this.seedCurrencies();
     }
 
     private async seedAdmin(){
@@ -48,5 +54,39 @@ export class SeedService implements OnModuleInit{
 
         await this.userRepository.save(adminUser);
         this.logger.log(`Admin user successfully created with the email: ${adminEmail}`);
+    }
+
+    private async seedCurrencies() {
+        const defaultCurrencies = [
+            {
+                code: 'ARS',
+                name: 'Argentine Peso',
+                symbol: '$',
+                type: CurrencyType.FIAT,
+                decimals: 2,
+            },
+            {
+                code: 'USDT',
+                name: 'Tether US',
+                symbol: '₮',
+                type: CurrencyType.CRYPTO,
+                decimals: 6, 
+            }
+        ];
+
+        for (const currencyData of defaultCurrencies) {
+            const exists = await this.currencyRepository.findOne({ 
+                where: { code: currencyData.code },
+                withDeleted: true 
+            });
+
+            if (!exists) {
+                const currency = this.currencyRepository.create(currencyData);
+                await this.currencyRepository.save(currency);
+                this.logger.log(`Currency ${currencyData.code} seeded successfully`);
+            } else {
+                this.logger.log(`Currency ${currencyData.code} already exists. Omitting creation`);
+            }
+        }
     }
 }

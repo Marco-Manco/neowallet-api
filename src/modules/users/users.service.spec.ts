@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { UserMapper } from 'src/commons/user.mapper';
+import { UserMapper } from 'src/modules/users/mappers/user.mapper';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { MockRepositoryFactory } from 'src/testing/mocks/repository.mock';

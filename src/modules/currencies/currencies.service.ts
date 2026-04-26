@@ -51,6 +51,14 @@ export class CurrenciesService {
     await this.currencyRepository.softDelete(currency.id);
   }
   
+  async findByCode(code: string): Promise<Currency> {
+    const currency = await this.currencyRepository.findOne({ where: { code } });
+    if (!currency) {
+      throw new NotFoundException(`Currency with code '${code}' not found`);
+    }
+    return currency;
+  }
+
   private async getCurrencyOrThrow(id: string): Promise<Currency> {
     const currency = await this.currencyRepository.findOne({ where: { id } });
     

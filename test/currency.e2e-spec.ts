@@ -36,14 +36,11 @@ describe('CurrenciesController (e2e)', () => {
   });
 
   beforeEach(async () => {
-    // 1. Limpiamos ambas tablas para evitar conflictos
     await dataSource.query('TRUNCATE TABLE users, currencies CASCADE');
     
-    // 2. Ejecutamos el Seed (Crea el Admin, ARS y USDT)
     const seedService = app.get(SeedService);
     await seedService.onModuleInit();
 
-    // 3. Login del Admin (usando .env.test)
     const configService = app.get(ConfigService);
     const adminEmail = configService.get<string>('ADMIN_SEED_EMAIL');
     const adminPassword = configService.get<string>('ADMIN_SEED_PASSWORD');
@@ -55,21 +52,15 @@ describe('CurrenciesController (e2e)', () => {
       
     adminToken = adminLogin.body.access_token;
 
-    // 4. Crear y Loguear un Usuario Normal
     const userDto = { email: 'user@example.com', password: 'userpassword123' };
-    await request(app.getHttpServer()).post('/users').send(userDto).expect(201);
     
-    const userLogin = await request(app.getHttpServer())
-      .post('/auth/login')
+    const registerRes = await request(app.getHttpServer())
+      .post('/auth/register')
       .send(userDto)
       .expect(201);
       
-    userToken = userLogin.body.access_token;
+    userToken = registerRes.body.access_token;
   });
-
-  // ==============================================================================
-  // CURRENCIES ROUTES
-  // ==============================================================================
 
   describe('POST /currencies', () => {
     const newCurrency = {
@@ -100,7 +91,6 @@ describe('CurrenciesController (e2e)', () => {
     });
 
     it('should return 409 Conflict if code already exists', async () => {
-      // Intentamos crear ARS (que ya fue inyectada por el SeedService en el beforeEach)
       const duplicateCurrency = { ...newCurrency, code: 'ARS' };
 
       const response = await request(app.getHttpServer())
@@ -121,7 +111,6 @@ describe('CurrenciesController (e2e)', () => {
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-      // El seed ya inyectó ARS y USDT, así que esperamos al menos 2
       expect(response.body.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -134,7 +123,6 @@ describe('CurrenciesController (e2e)', () => {
 
   describe('PATCH /currencies/:id', () => {
     it('should allow Admin to update a currency', async () => {
-      // 1. Creamos una moneda de prueba
       const createRes = await request(app.getHttpServer())
         .post('/currencies')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -143,7 +131,6 @@ describe('CurrenciesController (e2e)', () => {
 
       const currencyId = createRes.body.id;
 
-      // 2. La modificamos
       const updateRes = await request(app.getHttpServer())
         .patch(`/currencies/${currencyId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -156,7 +143,6 @@ describe('CurrenciesController (e2e)', () => {
 
   describe('DELETE /currencies/:id', () => {
     it('should allow Admin to soft delete a currency', async () => {
-      // 1. Creamos una moneda para borrar
       const createRes = await request(app.getHttpServer())
         .post('/currencies')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -165,13 +151,11 @@ describe('CurrenciesController (e2e)', () => {
 
       const currencyId = createRes.body.id;
 
-      // 2. La borramos
       await request(app.getHttpServer())
         .delete(`/currencies/${currencyId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(204);
 
-      // 3. Verificamos que ya no esté en el listado
       const listRes = await request(app.getHttpServer())
         .get('/currencies')
         .set('Authorization', `Bearer ${adminToken}`)

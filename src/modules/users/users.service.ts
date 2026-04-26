@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm'
 import { UserResponseDto } from './dto/user-response.dto';
@@ -15,17 +15,18 @@ export class UsersService {
     private readonly userMapper: UserMapper,
   ){}
 
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(createUserDto: CreateUserDto, manager?: EntityManager): Promise<UserResponseDto> {
     const {email, password} = createUserDto;
-    await this.validateEmailUniqueness(email);
+    const repo = this.getRepo(manager);
+    await this.validateEmailUniqueness(email, manager);
     const passwordHash = await this.hashPassword(password);
 
-    const newUser = this.userRepository.create({
+    const newUser = repo.create({
       email,
       passwordHash,
     })
 
-    const savedUser = await this.userRepository.save(newUser);
+    const savedUser = await repo.save(newUser);
 
     return this.userMapper.toResponseDto(savedUser);
   }
@@ -45,12 +46,13 @@ export class UsersService {
     await this.userRepository.softDelete(id);
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+  async findByEmail(email: string, manager?: EntityManager): Promise<User | null> {
+    const repo = this.getRepo(manager);
+    return repo.findOne({ where: { email } });
   }
 
-  private async validateEmailUniqueness(email: string): Promise<void>{
-    const user = await this.findByEmail(email);
+  private async validateEmailUniqueness(email: string, manager?: EntityManager): Promise<void>{
+    const user = await this.findByEmail(email, manager);
     if(user) throw new ConflictException('Email is already registered');
   }
 
@@ -63,5 +65,9 @@ export class UsersService {
   private hashPassword(password: string): Promise<string>{
     const salRounds = 10;
     return bcrypt.hash(password, salRounds);
+  }
+
+  private getRepo(manager?: EntityManager): Repository<User> {
+    return manager ? manager.getRepository(User) : this.userRepository;
   }
 }

@@ -1,6 +1,7 @@
 
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { UserRole } from '../enums/user-role.enum';
+import { Wallet } from 'src/modules/wallets/entities/wallet.entity';
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn('uuid')
@@ -19,6 +20,9 @@ export class User {
     })
     role: UserRole;
 
+    @OneToMany(() => Wallet, (wallet) => wallet.user)
+    wallets: Wallet[];
+
     @CreateDateColumn()
     createdAt: Date;
 
@@ -27,4 +31,6 @@ export class User {
 
     @DeleteDateColumn({name: 'deleted_at'})
     deletedAt?: Date;
+
+    
 }

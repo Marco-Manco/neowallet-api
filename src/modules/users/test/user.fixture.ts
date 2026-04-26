@@ -7,6 +7,7 @@ export const mockUser: User = {
     email: 'test@example.com',
     passwordHash: 'hasshed_password_123',
     role: UserRole.USER,
+    wallets: [],
     createdAt: new Date('2026-04-23T10:00:00Z'),
     updatedAt: new Date('2026-04-23T10:00:00Z'),
 }

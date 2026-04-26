@@ -38,55 +38,17 @@ describe('UsersController (e2e)', () => {
     await seedService.onModuleInit();
   });
 
-  // ==============================================================================
-  // 1. PUBLIC ROUTES (REGISTRATION)
-  // ==============================================================================
-  describe('Public Routes - Registration (/users)', () => {
-    const registerDto = { email: 'test@example.com', password: 'password123' };
-
-    it('(POST) should register a new user successfully', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/users')
-        .send(registerDto)
-        .expect(201);
-
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.email).toBe(registerDto.email);
-      expect(response.body).not.toHaveProperty('passwordHash'); 
-    });
-
-    it('(POST) should return 409 Conflict if email is already taken', async () => {
-      await request(app.getHttpServer()).post('/users').send(registerDto);
-
-      const response = await request(app.getHttpServer())
-        .post('/users')
-        .send(registerDto)
-        .expect(409);
-
-      expect(response.body.message).toBe('Email is already registered');
-    });
-
-    it('(POST) should return 400 Bad Request if email is invalid', async () => {
-      const invalidDto = { email: 'esto-no-es-un-email', password: '123' };
-      
-      await request(app.getHttpServer())
-        .post('/users')
-        .send(invalidDto)
-        .expect(400);
-    });
-  });
-
-  // ==============================================================================
-  // 2. PROTECTED ROUTES - OWN PROFILE
-  // ==============================================================================
   describe('Protected Routes - Own Profile (/users/me)', () => {
     let userToken: string;
     const userDto = { email: 'me@example.com', password: 'password123' };
 
     beforeEach(async () => {
-      await request(app.getHttpServer()).post('/users').send(userDto).expect(201);
-      const loginRes = await request(app.getHttpServer()).post('/auth/login').send(userDto).expect(201);
-      userToken = loginRes.body.access_token;
+      const registerRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send(userDto)
+        .expect(201);
+      
+      userToken = registerRes.body.access_token;
     });
 
     it('(GET) should return current user profile', async () => {
@@ -118,9 +80,7 @@ describe('UsersController (e2e)', () => {
     });
   });
 
-  // ==============================================================================
-  // 3. ADMIN ROUTES
-  // ==============================================================================
+
   describe('Protected Routes - Admin Access', () => {
     let adminToken: string;
     let regularToken: string;
@@ -139,11 +99,14 @@ describe('UsersController (e2e)', () => {
       adminToken = adminLogin.body.access_token;
 
       const userDto = { email: 'user@example.com', password: 'userpassword123' };
-      const userRes = await request(app.getHttpServer()).post('/users').send(userDto).expect(201);
-      targetUserId = userRes.body.id; 
+      
+      const registerRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send(userDto)
+        .expect(201);
 
-      const userLogin = await request(app.getHttpServer()).post('/auth/login').send(userDto).expect(201);
-      regularToken = userLogin.body.access_token;
+      targetUserId = registerRes.body.user.id; 
+      regularToken = registerRes.body.access_token;
     });
 
     it('(GET /users) Admin should be able to get all users', async () => {
@@ -187,5 +150,4 @@ describe('UsersController (e2e)', () => {
         .expect(403);
     });
   });
-
 });

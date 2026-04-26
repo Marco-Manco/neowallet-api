@@ -5,8 +5,9 @@ import { JwtService } from '@nestjs/jwt';
 import { UserMapper } from 'src/modules/users/mappers/user.mapper';
 import { mockUser, mockUserResponse } from '../users/test/user.fixture';
 import { MockUsersServiceFactory } from 'src/testing/mocks/services.mock';
-import { MockJwtServiceFactory, MockUserMapperFactory } from 'src/testing/mocks/common.mock';
+import { MockJwtServiceFactory, MockRegisterUserUseCaseFactory, MockUserMapperFactory } from 'src/testing/mocks/common.mock';
 import * as bcrypt from 'bcrypt';
+import { RegisterUserUseCase } from './use-cases/register-user.user-case';
 
 jest.mock('bcrypt');
 
@@ -15,6 +16,7 @@ describe('AuthService', () => {
   let usersService: ReturnType<typeof MockUsersServiceFactory>;
   let jwtService: ReturnType<typeof MockJwtServiceFactory>;
   let userMapper: ReturnType<typeof MockUserMapperFactory>;
+  let registerUserUseCase: ReturnType<typeof MockRegisterUserUseCaseFactory>; 
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,6 +25,7 @@ describe('AuthService', () => {
         { provide: UsersService, useFactory: MockUsersServiceFactory },
         { provide: JwtService, useFactory: MockJwtServiceFactory },
         { provide: UserMapper, useFactory: MockUserMapperFactory },
+        { provide: RegisterUserUseCase, useFactory: MockRegisterUserUseCaseFactory}
       ],
     }).compile();
 
@@ -30,6 +33,7 @@ describe('AuthService', () => {
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
     userMapper = module.get(UserMapper);
+    registerUserUseCase = module.get(RegisterUserUseCase);
   });
 
   afterEach(() => {
@@ -78,6 +82,26 @@ describe('AuthService', () => {
 
       expect(jwtService.sign).toHaveBeenCalled();
       expect(result).toEqual({ access_token: mockToken });
+    });
+  });
+
+
+  describe('register', () => {
+    it('should register a user and return the user profile with an access token', async () => {
+      const createUserDto = { email: 'test@domain.com', password: 'password123' };
+      const mockToken = 'mocked_jwt_token';
+
+      registerUserUseCase.execute.mockResolvedValue(mockUserResponse);
+      jwtService.sign.mockReturnValue(mockToken);
+
+      const result = await service.register(createUserDto);
+
+      expect(registerUserUseCase.execute).toHaveBeenCalledWith(createUserDto);
+      
+      expect(result).toEqual({
+        user: mockUserResponse,
+        access_token: mockToken,
+      });
     });
   });
 });

@@ -7,6 +7,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { CurrenciesModule } from './modules/currencies/currencies.module';
+import { WalletsModule } from './modules/wallets/wallets.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CurrenciesModule } from './modules/currencies/currencies.module';
     AuthModule,
     SeedModule,
     CurrenciesModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

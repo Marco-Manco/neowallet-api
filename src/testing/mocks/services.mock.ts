@@ -5,3 +5,7 @@ export const MockUsersServiceFactory = jest.fn(() => ({
   findAll: jest.fn(),
   softDelete: jest.fn(),
 }));
+
+export const MockCurrenciesServiceFactory = jest.fn(() => ({
+  findByCode: jest.fn(),
+}));

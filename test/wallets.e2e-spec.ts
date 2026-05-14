@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { configureTestApp } from './utils/configure-test-app';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { SeedService } from 'src/modules/seed/seed.service';
 import { ConfigService } from '@nestjs/config';
+import { AppModule } from 'src/app.module';
 
 describe('WalletsController (e2e)', () => {
   let app: INestApplication;
@@ -16,7 +17,7 @@ describe('WalletsController (e2e)', () => {
   let createdWalletId: string;
   
   const testUser = { email: 'wallet.user@example.com', password: 'Password123!' };
-  const targetCurrencyCode = 'USDT'; 
+  const targetCurrencyCode = 'EUR'; 
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,13 +25,12 @@ describe('WalletsController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    configureTestApp(app);
     await app.init();
     
     dataSource = app.get(DataSource);
     
-    await dataSource.query('TRUNCATE TABLE users CASCADE');
-    await dataSource.query('TRUNCATE TABLE currencies CASCADE');
+    await dataSource.query('TRUNCATE TABLE users, currencies, wallets CASCADE');
     
     const seedService = app.get(SeedService);
     await seedService.onModuleInit();
@@ -42,15 +42,27 @@ describe('WalletsController (e2e)', () => {
     const adminLoginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: adminEmail, password: adminPassword });
-    adminToken = adminLoginRes.body.access_token;
+    adminToken = adminLoginRes.body.data.access_token;
 
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
       .send(testUser)
       .expect(201); 
     
-    userToken = registerRes.body.access_token;
-    userId = registerRes.body.user.id;
+    userToken = registerRes.body.data.access_token;
+    userId = registerRes.body.data.user.id;
+
+    await request(app.getHttpServer())
+      .post('/currencies')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        code: targetCurrencyCode,
+        name: 'Euro',
+        symbol: '€',
+        type: 'FIAT',
+        decimals: 2,
+      })
+      .expect(201);
   });
 
   afterAll(async () => {
@@ -64,14 +76,14 @@ describe('WalletsController (e2e)', () => {
         .post('/wallets')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ currencyCode: targetCurrencyCode })
+        .expect(201);
 
-      expect(response.status).toBe(201)
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.userId).toBe(userId);
-      expect(response.body.currency.code).toBe(targetCurrencyCode);
-      expect(response.body.balance).toBe('0');
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.userId).toBe(userId);
+      expect(response.body.data.currency.code).toBe(targetCurrencyCode);
+      expect(response.body.data.balance).toBe('0');
       
-      createdWalletId = response.body.id; 
+      createdWalletId = response.body.data.id; 
     });
 
     it('should return 409 Conflict if user already has a wallet for this currency', async () => {
@@ -105,9 +117,9 @@ describe('WalletsController (e2e)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(1);
-      expect(response.body[0].userId).toBe(userId);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data[0].userId).toBe(userId);
     });
   });
 
@@ -118,7 +130,7 @@ describe('WalletsController (e2e)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(createdWalletId);
+      expect(response.body.data.id).toBe(createdWalletId);
     });
 
     it('should return the wallet if requested by an ADMIN', async () => {
@@ -127,16 +139,16 @@ describe('WalletsController (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(response.body.id).toBe(createdWalletId);
+      expect(response.body.data.id).toBe(createdWalletId);
     });
 
     it('should return 403 Forbidden if another regular user tries to access it', async () => {
       const intruderRes = await request(app.getHttpServer())
         .post('/auth/register')
-        .send({ email: 'intruder@test.com', password: 'Password123456789' })
-        .expect(201);
+        .send({ email: 'intruder@test.com', password: 'Password123!' }) 
+        .expect(201); 
       
-      const intruderToken = intruderRes.body.access_token;
+      const intruderToken = intruderRes.body.data.access_token;
 
       await request(app.getHttpServer())
         .get(`/wallets/${createdWalletId}`)
@@ -159,7 +171,7 @@ describe('WalletsController (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
 
     it('should return 403 Forbidden for a regular user', async () => {

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { configureTestApp } from './utils/configure-test-app';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
@@ -19,13 +20,7 @@ describe('CurrenciesController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }));
-
+    configureTestApp(app);
     await app.init();
     dataSource = app.get(DataSource);
   });
@@ -50,16 +45,16 @@ describe('CurrenciesController (e2e)', () => {
       .send({ email: adminEmail, password: adminPassword })
       .expect(201);
       
-    adminToken = adminLogin.body.access_token;
+    adminToken = adminLogin.body.data.access_token;
 
-    const userDto = { email: 'user@example.com', password: 'userpassword123' };
+    const userDto = { email: 'user@example.com', password: 'Password123!' };
     
     const registerRes = await request(app.getHttpServer())
       .post('/auth/register')
       .send(userDto)
       .expect(201);
       
-    userToken = registerRes.body.access_token;
+    userToken = registerRes.body.data.access_token;
   });
 
   describe('POST /currencies', () => {
@@ -78,8 +73,8 @@ describe('CurrenciesController (e2e)', () => {
         .send(newCurrency)
         .expect(201);
 
-      expect(response.body.code).toBe('USD');
-      expect(response.body).toHaveProperty('id');
+      expect(response.body.data.code).toBe('USD');
+      expect(response.body.data).toHaveProperty('id');
     });
 
     it('should return 403 Forbidden for normal User', async () => {
@@ -99,7 +94,7 @@ describe('CurrenciesController (e2e)', () => {
         .send(duplicateCurrency)
         .expect(409);
 
-      expect(response.body.message).toContain('already exists');
+      expect(response.body.error.message).toContain('already exists');
     });
   });
 
@@ -110,8 +105,8 @@ describe('CurrenciesController (e2e)', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(2);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should return 401 Unauthorized if no token is provided', async () => {
@@ -129,7 +124,7 @@ describe('CurrenciesController (e2e)', () => {
         .send({ code: 'GBP', name: 'Pound', type: CurrencyType.FIAT, decimals: 2 })
         .expect(201);
 
-      const currencyId = createRes.body.id;
+      const currencyId = createRes.body.data.id;
 
       const updateRes = await request(app.getHttpServer())
         .patch(`/currencies/${currencyId}`)
@@ -137,7 +132,7 @@ describe('CurrenciesController (e2e)', () => {
         .send({ name: 'British Pound' })
         .expect(200);
 
-      expect(updateRes.body.name).toBe('British Pound');
+      expect(updateRes.body.data.name).toBe('British Pound');
     });
   });
 
@@ -149,7 +144,7 @@ describe('CurrenciesController (e2e)', () => {
         .send({ code: 'TEMP', name: 'Delete Me', type: CurrencyType.FIAT, decimals: 2 })
         .expect(201);
 
-      const currencyId = createRes.body.id;
+      const currencyId = createRes.body.data.id;
 
       await request(app.getHttpServer())
         .delete(`/currencies/${currencyId}`)
@@ -161,7 +156,7 @@ describe('CurrenciesController (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       
-      const found = listRes.body.find((c: any) => c.id === currencyId);
+      const found = listRes.body.data.find((c: any) => c.id === currencyId);
       expect(found).toBeUndefined();
     });
   });

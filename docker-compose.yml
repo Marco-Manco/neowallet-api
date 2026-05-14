@@ -22,7 +22,7 @@ services:
     command: redis-server --appendonly yes
 
   bullmq-board:
-    image: queuingio/bull-board:latest
+    image: deadly0/bull-board:latest
     container_name: neowallet-bullmq-board
     ports:
       - "3001:3000"
@@ -31,7 +31,6 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - BULL_PREFIX=bull
-      - BULLMQ_QUEUES=email-notifications,transaction-receipts
     depends_on:
       - redis
 

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { configureTestApp } from './utils/configure-test-app';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
@@ -19,9 +20,7 @@ describe('AuthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    
+    configureTestApp(app);
     await app.init();
     dataSource = app.get(DataSource);
 
@@ -40,12 +39,12 @@ describe('AuthController (e2e)', () => {
         .send(testUser)
         .expect(201);
 
-      expect(response.body).toHaveProperty('user');
-      expect(response.body.user.email).toBe(testUser.email);
-      expect(response.body.user).not.toHaveProperty('passwordHash');
+      expect(response.body.data).toHaveProperty('user');
+      expect(response.body.data.user.email).toBe(testUser.email);
+      expect(response.body.data.user).not.toHaveProperty('passwordHash');
 
-      expect(response.body).toHaveProperty('access_token');
-      expect(typeof response.body.access_token).toBe('string');
+      expect(response.body.data).toHaveProperty('access_token');
+      expect(typeof response.body.data.access_token).toBe('string');
     });
 
     it('should return 409 Conflict if email is already taken', async () => {
@@ -54,7 +53,7 @@ describe('AuthController (e2e)', () => {
         .send(testUser)
         .expect(409);
 
-      expect(response.body.message).toBe('Email is already registered');
+      expect(response.body.error.message).toBe('Email is already registered');
     });
   });
 
@@ -68,8 +67,8 @@ describe('AuthController (e2e)', () => {
         })
         .expect(201); 
 
-      expect(response.body).toHaveProperty('access_token');
-      expect(typeof response.body.access_token).toBe('string');
+      expect(response.body.data).toHaveProperty('access_token');
+      expect(typeof response.body.data.access_token).toBe('string');
     });
 
     it('should return 401 Unauthorized for incorrect password', async () => {

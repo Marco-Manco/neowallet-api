@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Decimal } from 'decimal.js';
 import { Wallet } from '../../wallets/entities/wallet.entity';
 import { TransactionType } from '../enums/transaction-type.enum';
@@ -10,6 +10,7 @@ const decimalTransformer = {
 };
 
 @Entity('transactions')
+@Index(['idempotencyKey'], { unique: true })
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -22,12 +23,6 @@ export class Transaction {
 
   @Column({ type: 'decimal', precision: 18, scale: 8, transformer: decimalTransformer })
   amount: Decimal;
-
-  @Column({ type: 'decimal', precision: 18, scale: 8, transformer: decimalTransformer })
-  receivedAmount: Decimal;
-
-  @Column({ type: 'decimal', precision: 18, scale: 8, nullable: true, transformer: decimalTransformer })
-  exchangeRate: Decimal | null;
 
   @ManyToOne(() => Wallet, { nullable: false })
   @JoinColumn({ name: 'sourceWalletId' })
@@ -43,6 +38,12 @@ export class Transaction {
   @Column({ nullable: true })
   targetWalletId: string | null;
 
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  idempotencyKey: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
